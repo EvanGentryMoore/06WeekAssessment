@@ -1,15 +1,37 @@
 const express = require('express')
 const path = require('path')
 const app = express()
-const {bots, playerRecord} = require('./data.js')
-const {shuffleArray} = require('./utils.js')
+const {bots, playerRecord} = require('./data')
+const {shuffleArray} = require('./utils')
+
+// include and initialize the rollbar library with your access token
+var Rollbar = require('rollbar')
+var rollbar = new Rollbar({
+  accessToken: '1e09544956e44dff94a5c60aa0ff6836',
+  captureUncaught: true,
+  captureUnhandledRejections: true,
+})
+
+// record a generic message and send it to Rollbar
+// rollbar.log('Hello world!')
 
 app.use(express.json())
+
+app.get('/', (req,res) => {
+    res.sendFile(path.join(__dirname, 'public/index.html'))
+})
+app.get('/styles', (req,res) => {
+    res.sendFile(path.join(__dirname, '/public/index.css'))
+})
+app.get('/js', (req,res) => {
+    res.sendFile(path.join(__dirname, '/public/index.js'))
+})
 
 app.get('/api/robots', (req, res) => {
     try {
         res.status(200).send(botsArr)
     } catch (error) {
+        rollbar.critical('could not find botsArr')
         console.log('ERROR GETTING BOTS', error)
         res.sendStatus(400)
     }
@@ -22,6 +44,7 @@ app.get('/api/robots/five', (req, res) => {
         let compDuo = shuffled.slice(6, 8)
         res.status(200).send({choices, compDuo})
     } catch (error) {
+        rollbar.error('trouble getting the five bots')
         console.log('ERROR GETTING FIVE BOTS', error)
         res.sendStatus(400)
     }
@@ -53,6 +76,7 @@ app.post('/api/duel', (req, res) => {
             res.status(200).send('You won!')
         }
     } catch (error) {
+        rollbar.critical('SNAFU during battle')
         console.log('ERROR DUELING', error)
         res.sendStatus(400)
     }
@@ -62,6 +86,7 @@ app.get('/api/player', (req, res) => {
     try {
         res.status(200).send(playerRecord)
     } catch (error) {
+        rollbar.info(`Didn't return player's stats.`)
         console.log('ERROR GETTING PLAYER STATS', error)
         res.sendStatus(400)
     }
@@ -71,4 +96,4 @@ const port = process.env.PORT || 3000
 
 app.listen(port, () => {
   console.log(`Listening on port ${port}`)
-})
+}) 
